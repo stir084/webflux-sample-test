@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -23,8 +24,8 @@ public class ToUnderstandThreadController {
 
 
         IntStream.range(0, 1_000_000_000).forEach(it -> {
-            if (it % 100_000_000 == 0) {
-                // log.info("Request [" + id + "] for: " + it);
+            if (it % 10000 == 0) {
+                log.info("Request [" + id + "] for: " + it);
             }
         });
 
@@ -34,6 +35,52 @@ public class ToUnderstandThreadController {
         String format = formatter.format((end - start) / 1000d);
         return Mono.just( format + "초 소요되었습니다.");
     }
+    // 동기식 코드는 쓰레드를 빈곤하게 만든다.
+    // 반복문 자체는 동기식 작업이며 반복문 자체가 비동기 처리에는 어울리지 않는다.
+    @GetMapping("/impoverish2/{id}")
+    public Flux<Integer> impoverishThread2(@PathVariable String id) {
+        Flux<Integer> integerFlux = Flux.range(1, 10000)
+                .flatMap(i -> Flux.just(i)
+                        .map(j -> {
+                            // 각 요소를 비동기적으로 처리하고 로그 출력
+                            System.out.println("Processing element: " + j + " on thread: " + Thread.currentThread().getName());
+                            return j;
+                        })
+                );
+        return integerFlux;
+    }
+    @GetMapping("/impoverish3/{id}")
+    public Mono<String> impoverishThread3(@PathVariable String id) {
+        return Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+
+            IntStream.range(0, 1_000_000_000).forEach(it -> {
+                if (it % 10000 == 0) {
+                    log.info("Request [" + id + "] for: " + it);
+                }
+            });
+
+            long end = System.currentTimeMillis();
+
+            NumberFormat formatter = new DecimalFormat("#0.00000");
+            String format = formatter.format((end - start) / 1000d);
+            return format + "초 소요되었습니다.";
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+    @GetMapping("/impoverish4/{id}")
+    public Mono<Integer> impoverishThread4(@PathVariable String id) {
+        Flux<Integer> flux = Flux.range(0, 1_000_000_000)
+                .filter(it -> it % 10_000_00 == 0)
+                .doOnNext(it -> log.info(String.valueOf(it)));
+
+        flux.subscribe(i -> log.info(String.valueOf(i)),
+                error -> System.err.println("Error " + error),       // 에러 핸들러
+                () -> System.out.println("Done"));
+        return Mono.just(1);
+    } // 이것도 쓰레드 순서 기다린다..
+
+
+
     /*
     하지만 실제로 쓰레드가 일을 해야하는 무거운 연산을 수행하는 경우에는 응답이 지연되는 결과를 얻었습니다."
     스트리밍 서비스 처럼 Webflux랑 안 어울리는 프로젝트도 당연히 있지만 단순히 무거운 연산과 웹플럭스가 안어울리진 않습니다."
@@ -44,12 +91,67 @@ public class ToUnderstandThreadController {
 
 
 
-    // IO도 역시 느리다.
+    // I/O 작업도 Thread가 하는 일이지만 요청을 2개 보내는 경우 동시처리가 되는데, 이 이유는 Flux의 Subscribe는 Event Loop의 Thread가 처리하기 때문이다.
+    // 이 코드에서 flux를 리턴하는 것은 netty thread지만 사용자에게 0~1000000까지의 숫자를 보여주게 작업하는 것은 이벤트 루프의 thread
     @GetMapping("/correct")
     public Flux<Integer> useIteratorCorrectly() {
-        Flux<Integer> flux = Flux.range(0, 1_000_00);
+        Flux<Integer> flux = Flux.range(0, 1_000_000);
 
-       /* flux.doOnNext(item -> System.out.println("On next: " + item + "--" + Thread.currentThread().getName())).flatMap(it -> {
+        return flux;
+    }
+
+    @GetMapping("/correct2")
+    public Flux<Object> useIteratorCorrectly2() {
+        return null;
+    }
+        //Flux<Integer> flux = Flux.range(0, 1_000_000);
+
+        //  long start = System.currentTimeMillis();
+
+        /*Flux<Integer> flux = Flux.range(0, 1_000_000_00);
+
+        Mono<String> then = flux
+                .doOnNext(it -> {
+                    if (it % 100_000_000 == 0) {
+                       /// log.info("Request : " + it);
+                    }
+                })
+                .then(Mono.fromCallable(() -> {
+                   // long end = System.currentTimeMillis();
+                   // NumberFormat formatter = new DecimalFormat("#0.00000");
+                   // String format = formatter.format((end - start) / 1000d);
+                    return "초 소요되었습니다.";
+                }));
+
+        return then;*/
+
+       /* Flux<Integer> flux = Flux.range(0, 1_000_000_00);
+        Flux<Object> then = flux
+                .doOnNext(it -> {
+                    if (it % 100_000_000 == 0) {
+                        log.info("Request : " + it);
+                    }
+                })
+                .flatMap(it -> Mono.fromCallable(() -> {
+                    // 비동기 작업 추가
+                    return "초 소요되었습니다.";
+                }));
+        return then;
+*/
+
+        /*Flux<Integer> flux = Flux.range(0, 1_000_000_00);
+        Flux<Object> then = flux
+                .flatMap(it -> {
+                    if (it % 100_000_000 == 0) {
+                        log.info("Request : " + it);
+                    }
+                    return Mono.fromCallable(() -> {
+                        // 비동기 작업 추가
+                        return "초 소요되었습니다.";
+                    });
+                });
+        return then;
+      /*  flux.doOnNext(item -> System.out.println("On next: " + item + "--" + Thread.currentThread().getName())).flatMap(it -> {
             if (it % 100 == 0) {
                 log.info("Request ["  + "] for: " + it);
             }
@@ -61,10 +163,10 @@ public class ToUnderstandThreadController {
         long end = System.currentTimeMillis();
 
         NumberFormat formatter = new DecimalFormat("#0.00000");
-        String format = formatter.format((end - start) / 1000d);*/
+        String format = formatter.format((end - start) / 1000d);
 
-        /*Mono<String> flux2 = Mono.just(format);
-        return flux2;*/
+        Mono<String> flux2 = Mono.just(format);
+        return flux2;
         return flux;
     }
 
@@ -87,7 +189,7 @@ public class ToUnderstandThreadController {
         return Mono.just("Hello, WebFlux!" + id + "---" + format + " seconds");
     }*/
 
-    @GetMapping("/test")
+    /*@GetMapping("/test")
     public void test() {
         Flux<Integer> flux = Flux.just(1);
 //Observer 1
@@ -134,31 +236,6 @@ public class ToUnderstandThreadController {
         return flux2;
     }
 
-    @GetMapping("/hello2/{id}")
-    public Mono<String> sayHello2(@PathVariable String id) {
-        long start = System.currentTimeMillis();
+   */
 
-        Flux<Integer> flux = Flux.range(0, 1_000_000);
-
-        flux.doOnNext(it -> {
-            if (it % 100_000 == 0) {
-                //System.out.println(it + "--" + Thread.currentThread().getName()+"--"+id);
-                // log.info("Request [" + id + "] for: " + it);
-            }
-        }).flatMap(it -> {
-            if (it % 100_000 == 0) {
-                //System.out.println(it + "--" + Thread.currentThread().getName());
-                // log.info("Request [" + id + "] for: " + it);
-            }
-            return Mono.empty(); // 비동기 작업 처리
-        }).subscribe(); // 대기
-
-        long end = System.currentTimeMillis();
-
-        NumberFormat formatter = new DecimalFormat("#0.00000");
-        String format = formatter.format((end - start) / 1000d);
-
-        Mono<String> flux2 = Mono.just(format);
-        return flux2;
-    }
 }
