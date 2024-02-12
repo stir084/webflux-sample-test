@@ -11,6 +11,8 @@ import reactor.core.scheduler.Schedulers;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 
 @RestController
@@ -59,8 +61,8 @@ public class ToUnderstandThreadController {
 
     // I/O 작업도 Thread가 하는 일이지만 요청을 2개 보내는 경우 동시처리가 되는데, 이 이유는 Flux의 Subscribe는 Event Loop의 Thread가 처리하기 때문이다.
     // 이 코드에서 flux를 리턴하는 것은 netty thread지만 사용자에게 0~1000000까지의 숫자를 보여주게 작업하는 것은 Event Loop의 Thread다.
-    @GetMapping("/correct")
-    public Flux<Integer> useIteratorCorrectly() {
+    @GetMapping("/correct2/{id}")
+    public Flux<Integer> useIteratorCorrectly2() {
         return Flux.range(0, 1_000_000);
     }
 }

@@ -13,6 +13,8 @@ public class WebfluxFunctionTestController {
     // 보통 Mono를 생성하는 함수를 지연시키고자 할 때 사용한다.
     // 구독될 때마다 함수를 재평가하기 때문에 발생하는 현상
     // Cold 스트림은 구독할 때마다 독립적으로 데이터를 다시 생성한다.
+
+
     @GetMapping("/withoutDefer")
     public void withoutDefer() {
         Mono<Long> mono = Mono.just(System.currentTimeMillis());
@@ -30,6 +32,9 @@ public class WebfluxFunctionTestController {
     // Mono.just는 Hot 스트림이다.
     // 이건 구독하기도 전에 실행해서 이미 값이 들어와있음.
     // Hot 스트림은 데이터 생성과 구독이 독립적으로 이루어진다.
+
+    // fromCallable도 defer와 같은 기능을 한다.
+    // 다만 fromCallable은 .map()메소드가 단순 값을 리턴하는 것과 같은 개념이다.
     @GetMapping("/withDefer")
     public void withDefer() {
         Mono<Long> mono = Mono.defer(() -> Mono.just(System.currentTimeMillis()));
