@@ -37,20 +37,8 @@ public class ToUnderstandThreadController {
     }
     // 동기식 코드는 쓰레드를 빈곤하게 만든다.
     // 반복문 자체는 동기식 작업이며 반복문 자체가 비동기 처리에는 어울리지 않는다.
-    @GetMapping("/impoverish2/{id}")
-    public Flux<Integer> impoverishThread2(@PathVariable String id) {
-        Flux<Integer> integerFlux = Flux.range(1, 10000)
-                .flatMap(i -> Flux.just(i)
-                        .map(j -> {
-                            // 각 요소를 비동기적으로 처리하고 로그 출력
-                            System.out.println("Processing element: " + j + " on thread: " + Thread.currentThread().getName());
-                            return j;
-                        })
-                );
-        return integerFlux;
-    }
-    @GetMapping("/impoverish3/{id}")
-    public Mono<String> impoverishThread3(@PathVariable String id) {
+    @GetMapping("/correct/{id}")
+    public Mono<String> useIteratorCorrectly(@PathVariable String id) {
         return Mono.fromCallable(() -> {
             long start = System.currentTimeMillis();
 
@@ -67,19 +55,25 @@ public class ToUnderstandThreadController {
             return format + "초 소요되었습니다.";
         }).subscribeOn(Schedulers.boundedElastic());
     }
-    @GetMapping("/impoverish4/{id}")
-    public Mono<Integer> impoverishThread4(@PathVariable String id) {
-        Flux<Integer> flux = Flux.range(0, 1_000_000_000)
-                .filter(it -> it % 10_000_00 == 0)
-                .doOnNext(it -> log.info(String.valueOf(it)));
+    // 동기식 코드가 필요하다면 새로운 스레드를 생성하여 수행한다.
+    @GetMapping("/impoverish33/{id}")
+    public Mono<String> impoverishThread33(@PathVariable String id) {
+        long start = System.currentTimeMillis();
 
-        flux.subscribe(i -> log.info(String.valueOf(i)),
-                error -> System.err.println("Error " + error),       // 에러 핸들러
-                () -> System.out.println("Done"));
-        return Mono.just(1);
-    } // 이것도 쓰레드 순서 기다린다..
+        Flux<Integer> flux = Flux.range(0, 1_000_000_0)
+                .doOnNext(it -> {
+                    if (it % 1_000_0 == 0) {
+                      //  log.info("Request [" + id + "] for: " + it);
+                    }
+                });
 
-
+        return flux.then(Mono.defer(() -> {
+            long end = System.currentTimeMillis();
+            NumberFormat formatter = new DecimalFormat("#0.00000");
+            String format = formatter.format((end - start) / 1000d);
+            return Mono.just(format + "초 소요되었습니다.");
+        }));
+    }
 
     /*
     하지만 실제로 쓰레드가 일을 해야하는 무거운 연산을 수행하는 경우에는 응답이 지연되는 결과를 얻었습니다."
