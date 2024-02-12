@@ -13,8 +13,6 @@ public class WebfluxFunctionTestController {
     // 보통 Mono를 생성하는 함수를 지연시키고자 할 때 사용한다.
     // 구독될 때마다 함수를 재평가하기 때문에 발생하는 현상
     // Cold 스트림은 구독할 때마다 독립적으로 데이터를 다시 생성한다.
-
-
     @GetMapping("/withoutDefer")
     public void withoutDefer() {
         Mono<Long> mono = Mono.just(System.currentTimeMillis());
