@@ -18,7 +18,7 @@ public class ToUnderstandThreadController {
 
     private final Logger log = LoggerFactory.getLogger(ToUnderstandThreadController.class);
 
-    // 동기식 코드는 io 쓰레드를 빈곤하게 만든다.
+    // 동기식 코드는 I/O Thread를 빈곤하게 만든다.
     // 반복문 자체는 동기식 작업이며 반복문 자체가 비동기 처리에는 어울리지 않는다.
     @GetMapping("/impoverish/{id}")
     public Mono<String> impoverishThread(@PathVariable String id) {
@@ -58,11 +58,11 @@ public class ToUnderstandThreadController {
     }
 
     // 아래의 코드는 요청 시 7초가 소요된다.
-    // I/O 작업은 io thread(ioWorkerCount)가 하는 일이다.(우리가 흔히 아는 Netty Thread를 의미한다.)
+    // I/O 작업은 I/O Thread(ioWorkerCount)가 하는 일이다.(우리가 흔히 아는 Netty Thread를 의미한다.)
     // 사용자가 요청을 동시에 2개 보내는 경우 동시처리는 된다.
-    // Flux 안에 있는 행위는 단일 이벤트 루프 쓰레드가 처리하지만 결과가 끝나고나면 Io작업은 io Thread가 담당한다.
-    // 그래서 netty thread를 1개만 유지하고 동시요청을 하면 두번째 요청이 단일 요청보다 2배인 15초가 걸린다.
-    // 그래서 thread 제한을 풀고 동시 요청을 해보면 두번째 요청도 7~8초로 유지되는 것을 볼 수 있다.
+    // Flux 안에 있는 행위는 단일 이벤트 루프 쓰레드가 처리하지만 결과가 끝나고나면 I/O 작업은 I/O Thread가 담당한다.
+    // 그래서 Netty Thread를 1개만 유지하고 동시요청을 하면 두번째 요청이 단일 요청보다 2배인 15초가 걸린다.
+    // 그래서 Thread 제한을 풀고 동시 요청을 해보면 두번째 요청도 7~8초로 유지되는 것을 볼 수 있다.
     // 이로서 알 수 있는건 I/O 작업이 많은 서비스는 Webflux와 어울리지 않는다.
     @GetMapping("/correct2/{id}")
     public Flux<Integer> useIteratorCorrectly2() {
