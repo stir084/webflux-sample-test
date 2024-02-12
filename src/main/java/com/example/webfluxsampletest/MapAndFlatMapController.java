@@ -25,7 +25,9 @@ public class MapAndFlatMapController {
 
     // 결과적으로 단순 시간을 비교해보면 .map()이 5초 .flatMap()이 8초로 .map이 더 빠르다.
     // 하지만 /map과 /flatMap을 동시에 요청하면 각각 15초, 15초가 나오는데, 이는 Flux 내부에 있는 연산을 수행하는 Event Loop의 Thread는 단일 스레드로 구성되어있고 당연히 자원이 모자라기 때문이다.
-    // 즉 io Thread가 방해받지 않더라도 Event Loop Thread를 방해하는 경우도 충분히 생길 수 있다.
+    /// 단일 요청시 5초 8초를 합치면 13초고 동시 요청은 15초라 2초차이가 나는데 이는 Context Swithching 비용이라고 보면 된다.
+
+    // 다시 말해 io Thread가 방해받지 않더라도 Event Loop Thread를 방해하는 경우도 충분히 생길 수 있다.
     // 이벤트 루프 쓰레드 갯수를 늘릴 수 있냐고? 없다 https://stir.tistory.com/459 를 보면 그냥 싱글 스레드 구조다.
     @GetMapping("/input-number")
     public void inputNumber() {
@@ -37,21 +39,18 @@ public class MapAndFlatMapController {
     public Flux<String> map() {
         return Flux.fromIterable(inputList)
             .map(i -> {
-                String heavyObject = "Heavy Object " + i;
-                return heavyObject;
+                return "Heavy Object " + i;
             });
     }
     @GetMapping("/flatMap")
     public Flux<String> flatMap() {
-        Flux<String> flatMapResult = Flux.fromIterable(inputList)
+        return Flux.fromIterable(inputList)
             .flatMap(i -> {
                 Mono<String> heavyObjectMono = Mono.fromCallable(() -> {
-                    String heavyObject = "Heavy Object " + i;
-                    return heavyObject;
+                    return "Heavy Object " + i;
                 });
                 return heavyObjectMono;
             });
-        return flatMapResult;
     }
 
     @GetMapping("/test")
@@ -62,7 +61,7 @@ public class MapAndFlatMapController {
     // Webflux의 비동기를 살려 flatMap을 사용할 지라도 내부에 동기식 코드가 있으면 Thread는 Block 된다.
     @GetMapping("/use-incorrectly-flatMap")
     public Flux<String> useIncorrectlyFlatMap() {
-        Flux<String> flatMapResult = Flux.fromIterable(inputList)
+        return Flux.fromIterable(inputList)
             .flatMap(i -> {
                 Mono<String> heavyObjectMono = Mono.fromCallable(() -> {
                     IntStream.range(0, 1_000_000_000).forEach(it -> {
@@ -70,12 +69,10 @@ public class MapAndFlatMapController {
                             //log.info("Request : " + it);
                         }
                     });
-                    String heavyObject = "Heavy Object " + i;
-                    return heavyObject;
+                    return "Heavy Object " + i;
                 });
                 return heavyObjectMono;
             });
-        return flatMapResult;
     }
 
     // 약 16초 소요된다.
@@ -86,8 +83,7 @@ public class MapAndFlatMapController {
             .flatMap(i -> {
                 Mono<String> heavyObjectMono = Mono.fromCallable(() -> {
                     log.info("Request : " + i);
-                    String heavyObject = "Heavy Object " + i;
-                    return heavyObject;
+                    return "Heavy Object " + i;
                 });
                 return heavyObjectMono;
             });
