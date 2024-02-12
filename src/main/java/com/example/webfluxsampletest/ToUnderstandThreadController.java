@@ -18,7 +18,7 @@ public class ToUnderstandThreadController {
 
     private final Logger log = LoggerFactory.getLogger(ToUnderstandThreadController.class);
 
-    // 동기식 코드는 쓰레드를 빈곤하게 만든다.
+    // 동기식 코드는 io 쓰레드를 빈곤하게 만든다.
     // 반복문 자체는 동기식 작업이며 반복문 자체가 비동기 처리에는 어울리지 않는다.
     @GetMapping("/impoverish/{id}")
     public Mono<String> impoverishThread(@PathVariable String id) {
