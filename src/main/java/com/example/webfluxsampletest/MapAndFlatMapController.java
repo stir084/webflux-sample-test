@@ -19,16 +19,24 @@ public class MapAndFlatMapController {
     public static List<Integer> inputList = new ArrayList<>();
 
     // input-number로 숫자 100만개 입력 후에
-    // /map 요청 후 /test를 요청해보면 쓰레드가 1개여도 동시 처리된다.(io Thread가 방해받지 않는 비동기 연산이란 의미다)
+    // /map 요청 후 /test를 요청해보면 쓰레드가 1개여도 동시 처리된다.
+    // 쓰기 작업에서 I/O Thread 1개가 동시 처리는 하는 것이다.
+    // 하지만 당연히 /map을 2번 요청하면 두번째 요청은 동시 처리여도 시간이 2배다.
     // 이전의 오해는 .map() 메소드가 synchrounous, non-blocking 방식이라 Netty Http 쓰레드가 대기 상태일줄 알았지만 non-blocking에 의해 다른 작업도 동시 처리할 수 있다.
-    // synchronous는 순서를 보장한다는 측면에서 생각하는 것이 맞다.
+    // 단순히 synchronous는 순서를 보장한다는 측면에서 생각하는 것이 맞다.
 
     // 결과적으로 단순 시간을 비교해보면 .map()이 5초 .flatMap()이 8초로 .map이 더 빠르다.
-    // 하지만 /map과 /flatMap을 동시에 요청하면 각각 15초, 15초가 나오는데, 이는 Flux 내부에 있는 연산을 수행하는 Event Loop의 Thread는 단일 스레드로 구성되어있고 당연히 자원이 모자라기 때문이다.
-    /// 단일 요청시 5초 8초를 합치면 13초고 동시 요청은 15초라 2초차이가 나는데 이는 Context Swithching 비용이라고 보면 된다.
+    // 하지만 /map과 /flatMap을 동시에 요청하면 각각 15초, 15초가 나오는데
+    // 이것도 i/o Thread가 1개 여서 그렇고 2개로 늘리면 속도가 짧아지는 것을 볼 수 있다.
+    // 근데 궁금한 점은 2개로 늘리더라도 속도가 단일 요청(6초)보다 아주 약간 느리다(8초)는 점이었다.
+    // log.info로 찍어본 결과 flatMap, Map을 순서에 상관 없이 동시에 요청을 하면 map은 8초가 된다.
+    // 여기서 얻을 수 있는 정보는 순서에 상관이 없이 8초라서 각각 독립된 쓰레드가 일을 하고 독립된 시간을 유지한다는 뜻이다.
+    // (하지만 로그는 순차적으로 찍히긴 한다.)
+    // 그냥 CPU 하나를 통째로 써먹어서 그런가? 아닐텐데.. 쓰레드 하나가 그렇게 많이 처리한다고?
+    // 작업 관리자로 보니까 단일 요청은 CPU가 55퍼까지 오르지만 이중 요청은 80퍼센트까지 오른다.
+    // 결국 그냥 스레드만 나눈 것 뿐이지 CPU가 연산하는 속도의 한계때문에 8초가 걸리는 것이라고 결론 내릴 수 있겠다.
 
-    // 다시 말해 io Thread가 방해받지 않더라도 Event Loop Thread를 방해하는 경우도 충분히 생길 수 있다.
-    // 이벤트 루프 쓰레드 갯수를 늘릴 수 있냐고? 없다 https://stir.tistory.com/459 를 보면 그냥 싱글 스레드 구조다.
+    // 이벤트 루프는 그냥 이벤트 순서를 지켜주는 쓰레드고 그냥 싱글 스레드 구조다.
     @GetMapping("/input-number")
     public void inputNumber() {
         for (int i = 1; i <= 1000000; i++) {
@@ -39,6 +47,9 @@ public class MapAndFlatMapController {
     public Flux<String> map() {
         return Flux.fromIterable(inputList)
             .map(i -> {
+                if(i%100==0) {
+                    log.info("짠map" + Thread.currentThread().getName());
+                }
                 return "Heavy Object " + i;
             });
     }
@@ -47,6 +58,9 @@ public class MapAndFlatMapController {
         return Flux.fromIterable(inputList)
             .flatMap(i -> {
                 Mono<String> heavyObjectMono = Mono.fromCallable(() -> {
+                    if(i%10000==0) {
+                        log.info("짠flat" + Thread.currentThread().getName());
+                    }
                     return "Heavy Object " + i;
                 });
                 return heavyObjectMono;

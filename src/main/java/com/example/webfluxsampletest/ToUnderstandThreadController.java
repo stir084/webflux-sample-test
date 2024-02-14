@@ -57,12 +57,15 @@ public class ToUnderstandThreadController {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    // 아래의 코드는 요청 시 7초가 소요된다.
-    // I/O 작업은 I/O Thread(ioWorkerCount)가 하는 일이다.(우리가 흔히 아는 Netty Thread를 의미한다.)
-    // 사용자가 요청을 동시에 2개 보내는 경우 동시처리는 된다.
-    // Flux 안에 있는 행위는 단일 이벤트 루프 쓰레드가 처리하지만 결과가 끝나고나면 I/O 작업은 I/O Thread가 담당한다.
-    // 그래서 Netty Thread를 1개만 유지하고 동시요청을 하면 두번째 요청이 단일 요청보다 2배인 15초가 걸린다.
-    // 그래서 Thread 제한을 풀고 동시 요청을 해보면 두번째 요청도 7~8초로 유지되는 것을 볼 수 있다.
+    /*
+    ioWorkerCount를 1로 유지하고
+    요청을 하나만 날리면 7초가 걸린다.
+    하지만 동시에 요청을 2개 날리면 두번째 요청은 14초가 걸린다.
+    그렇다고해서 두번째 요청이 첫번째 요청이 끝날때까지 대기하는 것은 아니고 동시처리는 하지만 14초가 걸린다.
+    ioWorkerCount를 2로 유지하면 두번째 요청도 7초가 걸린다.
+    확실한건 그럼 네티 쓰레드가 일한다는 뜻이다.
+    네티 쓰레드가 하나여도 동시 처리는 한다.
+    */
     // 이로서 알 수 있는건 I/O 작업이 많은 서비스는 Webflux와 어울리지 않는다.
     @GetMapping("/correct2/{id}")
     public Flux<Integer> useIteratorCorrectly2() {
