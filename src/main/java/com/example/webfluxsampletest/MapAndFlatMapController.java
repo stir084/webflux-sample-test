@@ -13,7 +13,19 @@ import java.util.stream.IntStream;
 
 @RestController
 public class MapAndFlatMapController {
-
+    /**
+     * Map과 FlatMap의 핵심은
+     * 동시성이 있느냐와 없느냐의 차이가 있다.
+     * Map은 동시성이 없다.
+     * FlatMap은 동시성이 있다.
+     * Map은 동시성이 없기 때문에 순치적으로 처리해서 순차적으로 데이터를 쌓을 수 있다.
+     * FlatMap은 동시성이 있기 때문에 병렬적으로 처리해서 순서에 상관없이 데이터가 쌓인다.
+     * 당연히 FlatMap이 더 빨라보이겠지만 Map은 객체 생성 비용이 더 적기 때문에 메소드 그 자체로만 보면 시간이 덜 소요된다.
+     * 하지만 FlatMap은 내용이 무겁고 여러개를 처리해야할 필요가 있는 작업이라면 FlatMap을 쓰는 것이 더 옳다.
+     * FlatMap에도 순서를 보장해주는 FlatMapSequential이 존재하는데, 그럼 Map과 무슨 차이냐 할 수 있겠지만
+     * FlatMapSequential이 당연히 객체 생성 비용이 더 많으니 그 자체로 느리다.
+     * 다만 이것도 내부의 요소가 얼마나 비동기적으로 병렬처리가 필요하냐에 따라서 FlatMapSequential을 선택하면된다.
+     */
     private final Logger log = LoggerFactory.getLogger(MapAndFlatMapController.class);
 
     public static List<Integer> inputList = new ArrayList<>();
