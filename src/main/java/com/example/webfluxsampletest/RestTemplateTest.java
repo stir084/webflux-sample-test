@@ -4,7 +4,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -35,9 +34,7 @@ public class RestTemplateTest {
           .map(response -> response)
           .subscribe(
             data -> System.out.println("# emitted data: " + data),
-            error -> {
-                System.out.println(error);
-            },
+            error -> System.out.println(error),
             () -> System.out.println("# emitted onComplete signal")
           );
         return "dfdf";
