@@ -57,8 +57,16 @@ public class ToUnderstandThreadController {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /*
-    ioWorkerCount를 1로 유지하고
+    /**
+     * https://techblog.woowahan.com/15398/#toc-9
+     * Spring의 Reactive 프로그래밍 모델인 WebFlux는 Netty의 event loop 기반으로 동작합니다.
+     * Event loop가 중심에서 모든 요청을 처리하고, 요청 처리 구간을 callback으로 등록해놓고 worker 스레드 풀이 작업들을 처리하는 형태입니다.
+     * Worker 스레드가 작업을 처리하는 과정에서 I/O를 마주치게 되면 작업이 park 되면서 컨텍스트 스위칭이 발생합니다.
+     * 현재 실행 중인 스레드가 I/O 작업을 수행하기 위해 일시적으로 중단되고, 다른 스레드가 CPU 자원을 할당받아 실행될 수 있도록 컨텍스트가 변경된다는 것을 의미합니다.
+     * I/O 작업을 시작한 후 즉시 다른 작업을 수행할 수 있습니다. 컨텍스트 스위칭 비용 발생
+     * 마지막으로 컨텍스트 스위칭시 실제 스레드를 switch 하기 때문에, 경량스레드 switch에 비해 성능 낭비가 존재하고, 스레드의 컨텍스트를 상실하기 때문에 스택 트레이스가 유실된다는 단점도 존재합니다. 이는 디버그를 어렵게 만들 수 있습니다.
+
+     ioWorkerCount를 1로 유지하고
     요청을 하나만 날리면 7초가 걸린다.
     하지만 동시에 요청을 2개 날리면 두번째 요청은 14초가 걸린다.
     그렇다고해서 두번째 요청이 첫번째 요청이 끝날때까지 대기하는 것은 아니고 동시처리는 하지만 14초가 걸린다.
