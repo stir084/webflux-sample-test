@@ -82,7 +82,7 @@ public class MapAndFlatMapController {
         return Mono.just("Hi");
     }
 
-    // Webflux의 비동기를 살려 flatMap을 사용할 지라도 내부에 동기식 코드가 있으면 Thread는 Block 된다.
+    // Webflux의 비동기를 살려 flatMap을 사용할 지라도 내부에 CPU 사용이 많은 작업을 하면 Thread는 Block 된다.(당신의 WebFlux는 왜 느린가 유튜브 참고)
     @GetMapping("/use-incorrectly-flatMap")
     public Flux<String> useIncorrectlyFlatMap() {
         return Flux.fromIterable(inputList)
