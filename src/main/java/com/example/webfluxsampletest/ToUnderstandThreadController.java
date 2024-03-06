@@ -84,7 +84,6 @@ public class ToUnderstandThreadController {
      * String 자체를 Client로 내보내는 것이 느린 것은 아니다.
      * 결과적으로 I/O를 내뱉는 과정은 느리지 않다.
      * 다만 아래를 실행하면서 /test를 요청해도 결과가 보인다.
-     * 즉 쓰기 I/O작업 도중에도
      */
     @GetMapping("/correct3/{id}")
     public Mono<String> useIteratorCorrectly3() {
