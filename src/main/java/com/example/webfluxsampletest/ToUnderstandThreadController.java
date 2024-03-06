@@ -74,9 +74,20 @@ public class ToUnderstandThreadController {
     확실한건 그럼 네티 쓰레드가 일한다는 뜻이다.
     네티 쓰레드가 하나여도 동시 처리는 한다.
     */
-    // 이로서 알 수 있는건 I/O 작업이 많은 서비스는 Webflux와 어울리지 않는다.
     @GetMapping("/correct2/{id}")
     public Flux<Integer> useIteratorCorrectly2() {
         return Flux.range(0, 1_000_000);
+    }
+
+    /**
+     * Flux.range는 For문 형태로 작동하기 때문에 CPU 작업이 거기서 많아지는 것이지.
+     * String 자체를 Client로 내보내는 것이 느린 것은 아니다.
+     * 결과적으로 I/O를 내뱉는 과정은 느리지 않다.
+     * 다만 아래를 실행하면서 /test를 요청해도 결과가 보인다.
+     * 즉 쓰기 I/O작업 도중에도
+     */
+    @GetMapping("/correct3/{id}")
+    public Mono<String> useIteratorCorrectly3() {
+        return Mono.just(WebfluxSampleTestApplication.number);
     }
 }
