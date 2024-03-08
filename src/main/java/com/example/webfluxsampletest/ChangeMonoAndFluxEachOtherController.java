@@ -43,12 +43,16 @@ public class ChangeMonoAndFluxEachOtherController {
 
     /**
      * Flux를 Mono List로 바꿀 수 있다.
+     * Flux를 flatMap으로 돌리면 순차처리가 아닌 무작위 처리를 하므로 데이터를 한꺼번에 전달해서 순차처리하고 싶은 경우 collectList를 이용할 수 있다.
      */
     @GetMapping("/flux-mono")
     public Mono<List<Integer>> fluxMono(){
         Mono<List<Integer>> listMono = Flux.just(1, 2, 3, 4, 5).collectList();
         return listMono;
     }
+
+
+
 
     @GetMapping("/mono-flux-mono")
     public Mono<List<Integer>> monoFluxMono() {
