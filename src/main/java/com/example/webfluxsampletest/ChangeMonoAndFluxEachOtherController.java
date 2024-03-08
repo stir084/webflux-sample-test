@@ -23,7 +23,6 @@ public class ChangeMonoAndFluxEachOtherController {
     /**
      * flatMapMany - Mono로 감싸진 리스트를 Flux로 바꿔준다.
      */
-
     @GetMapping("/flatMapMany")
     public Flux<Integer> flatMapMany() {
         Mono<List<Integer>> listMono1 = Mono.just(List.of(1, 2, 3, 4, 5));
@@ -51,9 +50,6 @@ public class ChangeMonoAndFluxEachOtherController {
         return listMono;
     }
 
-
-
-
     @GetMapping("/mono-flux-mono")
     public Mono<List<Integer>> monoFluxMono() {
         Mono<List<Integer>> listMono1 = Mono.just(List.of(1, 2, 3, 4, 5));
@@ -63,6 +59,4 @@ public class ChangeMonoAndFluxEachOtherController {
         Mono<List<Integer>> mergedListMono = Flux.merge(intFlux1, intFlux2).collectList();
         return mergedListMono;
     }
-
-
 }
