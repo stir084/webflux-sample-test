@@ -14,6 +14,10 @@ public class AnotherThreadController {
      * publishOn에서 boundedElastic을 쓰는 것은 다운 스트림으로 시그널을 전송할 떄 실행되는 스레드를 제어하는 역할을 하는 오퍼레이터다.
      * 그래서 filter를 포함해서 하단은 전부 메인스레드가 아닌 다른 스레드로 처리함.
      */
+
+    /**
+     * flatMap은 앞에서 전달받은 아이템을 다른 형태로 변환하여 방출하는 반면, doOnNext는 로깅, api 콜과 같은 부가적인 동작을 하되, 전달받은 아이템을 변환하여 넘기는 동작은 하지 않는다는 점이다. 즉, source에 대한 transforming은 하지 않는다.
+     */
     @GetMapping("/another")
     public void another() throws InterruptedException {
         Flux
